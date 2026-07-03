@@ -2,11 +2,11 @@
 
 Firefox + Chrome extension that overlays multiple Squadrats users' collected
 tiles on the same route-planner map. Plan activities that maximise the haul of
-squares for the whole "ratpack" — not just yourself.
+squares for the whole squad.
 
-Clean-room reimplementation. The official "Squadrats Route Planning" extension
-is proprietary ("All Rights Reserved"); ratpack reuses the functional concepts
-only — no code is copied.
+Here is what it might look like for an unaccomplished pair of amateurs:
+<img width="1625" height="1057" alt="image" src="https://github.com/user-attachments/assets/dbb0467b-bfec-44ba-b8c5-767313ec03a7" />
+
 
 ## Download
 
@@ -18,6 +18,8 @@ Grab the latest release for your browser:
 - **Chrome**: download `ratpack-*-chrome.zip`
 
 ### Install
+
+At the moment, I haven't jumped through the hoops to get this up on the offical extension stores. This means there are a few more steps to get this working:
 
 **Firefox:**
 1. Open `about:debugging` → This Firefox → Load Temporary Add-on
@@ -63,8 +65,7 @@ To find it:
 
 Each user gets a deterministic colour. You can:
 - Click the colour swatch to change it
-- Type an optional label (display name) — the API has no name field, so labels
-  are stored locally
+- Type an optional label (display name)
 
 ### Tile rendering
 
@@ -73,10 +74,10 @@ For each squadrat tile, depending on how many users have collected it:
 - **0 users** — basemap shows through (no overlay)
 - **1 user** — solid colour overlay at constant alpha
 - **2+ users** — diagonal stripes (top-left → bottom-right), one stripe per
-  user, stably sorted by UID
+  user
 
-Squadrats (zoom 14) render in a **lighter** shade of each user's colour;
-squadratinhos (zoom 17) render in the **base** colour.
+Squadrats render in a **lighter** shade of each user's colour;
+squadratinhos render in the **base** colour.
 
 ## Development
 

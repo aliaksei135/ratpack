@@ -1,3 +1,7 @@
+if (typeof browser === "undefined" && typeof chrome !== "undefined") {
+  globalThis.browser = chrome;
+}
+
 const STORAGE_KEY = "ratpack_users";
 const UID_RE = /^[a-zA-Z0-9]+$/;
 const COLOR_RE = /^#[0-9a-f]{6}$/i;

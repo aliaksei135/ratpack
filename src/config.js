@@ -1,3 +1,7 @@
+if (typeof browser === "undefined" && typeof chrome !== "undefined") {
+  window.browser = chrome;
+}
+
 (function () {
   const rp = (window.ratpack = window.ratpack || {});
 

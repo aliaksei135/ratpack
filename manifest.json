@@ -6,9 +6,15 @@
   "permissions": ["storage"],
   "content_scripts": [
     {
-      "js": ["src/config.js", "src/storage.js", "src/colors.js", "src/fetcher.js", "src/cache.js", "src/throttle.js", "src/leaflet-engine.js", "src/planners/brouter.js", "src/main.js"],
+      "js": ["src/config.js", "src/storage.js", "src/colors.js", "src/fetcher.js", "src/cache.js", "src/throttle.js", "src/main.js"],
       "matches": ["*://*.brouter.de/*"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/page-renderer.js"],
+      "matches": ["*://*.brouter.de/*"]
     }
   ],
   "action": {

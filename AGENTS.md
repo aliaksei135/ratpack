@@ -1,10 +1,11 @@
 # AGENTS.md
 
-Firefox MV3 browser extension. Overlays multiple Squadrats users' collected
-tiles on route-planner maps. Clean-room reimplementation — the official
-"Squadrats Route Planning" extension is proprietary ("All Rights Reserved");
-never copy its code. Architecture concepts (manifest layout, IIFE modules,
-canvas GridLayer rendering, API contract) are reimplemented independently.
+Firefox + Chrome MV3 browser extension. Overlays multiple Squadrats users'
+collected tiles on route-planner maps. Clean-room reimplementation — the
+official "Squadrats Route Planning" extension is proprietary ("All Rights
+Reserved"); never copy its code. Architecture concepts (manifest layout, IIFE
+modules, canvas GridLayer rendering, API contract) are reimplemented
+independently.
 
 ## Commands
 
@@ -22,9 +23,23 @@ There is no build step, no test suite, no typecheck. Verify changes with:
 
 ## Architecture — non-obvious rules
 
+**Cross-browser: `browser` namespace shim.** Firefox provides the promise-based
+`browser` global; Chrome provides `chrome`. `src/config.js` (first loaded
+content script) and `popup/popup.js` both start with:
+
+```js
+if (typeof browser === "undefined" && typeof chrome !== "undefined") {
+  window.browser = chrome;
+}
+```
+
+Chrome's `chrome.storage.local.*` returns promises in MV3 (Chrome 88+), so the
+same promise-based code works in both browsers. `chrome.storage.onChanged` and
+`chrome.runtime.getURL` are also available via the shim.
+
 **No ES modules in content scripts.** Firefox MV3 content scripts cannot use
-`import`/`export`. Every `src/*.js` is a classic IIFE that attaches to a shared
-namespace:
+`import`/`export`. Every `src/*.js` (except `page-renderer.js`) is a classic IIFE
+that attaches to a shared namespace:
 
 ```js
 (function () {
@@ -44,34 +59,37 @@ fetch completes).
 
 **Manifest script order matters.** `content_scripts[0].js` loads in array order
 and modules depend on earlier ones being present on `window.ratpack`. Current
-order: `config -> storage -> colors -> fetcher -> cache -> throttle ->
-leaflet-engine -> planners/brouter -> main`. Preserve dependency order when
-adding files.
+order: `config -> storage -> colors -> fetcher -> cache -> throttle -> main`.
+Preserve dependency order when adding files. `page-renderer.js` is NOT in
+`content_scripts` — it's a `web_accessible_resources` script injected into the
+page world by `main.js` (see below).
 
-**Firefox X-ray vision is the #1 footgun.** Content scripts run in a separate
-compartment from the page. To read page globals (Leaflet's `L`, BRouter's `BR`):
-`const L = window.wrappedJSObject.L;`. To **pass** a content-script object into a
-page function (e.g. `L.GridLayer.extend(opts)`), you MUST clone it into the page
-compartment or Leaflet throws `Permission denied to access property "statics"`:
+**Two-world architecture (the #1 footgun).** Content scripts run in an isolated
+world — they have `browser.*` API access but CANNOT read page JS globals
+(`L`, `BR`). This is true in BOTH Chrome (isolated worlds) and Firefox
+(X-ray vision). To access page globals, `main.js` injects `page-renderer.js`
+as a `<script>` tag:
 
 ```js
-const pageOpts = cloneInto(
-  { options: {...}, createTile: createTileFn },
-  window,
-  { cloneFunctions: true }
-);
-const LayerClass = L.GridLayer.extend(pageOpts);
+const script = document.createElement("script");
+script.src = browser.runtime.getURL("src/page-renderer.js");
+(document.head || document.documentElement).appendChild(script);
 ```
 
-`cloneFunctions: true` wraps the content-side function so the page can call it,
-while it still closes over content-script variables. `document.createElement`
-returns a real DOM element that crosses compartments freely — no clone needed
-for canvas nodes passed back via `done(null, canvas)`.
+The page script runs in the **page's JS compartment** — `window.L` and
+`window.BR` are accessible directly (no `wrappedJSObject`, no `cloneInto`).
+Data crosses the world boundary via `window.postMessage`:
+
+- Content → page: `{source: "ratpack-cs", type: "RATPACK_RENDER", users, tiles, config}`
+- Page → content: `{source: "ratpack", type: "RATPACK_READY" | "RATPACK_RENDERED" | "RATPACK_NO_MAP"}`
+
+`postMessage` structured clone does NOT handle `Set` — `main.js` converts
+`Set` → `Array` before sending; `page-renderer.js` converts back on receipt.
 
 ## Module map
 
-- `src/config.js` — constants: API URL, `alpha` (overlay opacity),
-  `zoom` (14=squadrats, 17=squadratinhos), cache TTL.
+- `src/config.js` — `browser` shim + constants: API URL, `alpha` (overlay
+  opacity), `zoom` (14=squadrats, 17=squadratinhos), cache TTL.
 - `src/storage.js` / `popup/popup.js` — UID list in `browser.storage.local` under
   key `ratpack_users` as `[{uid, color, name?}]`, uid regex `/^[a-zA-Z0-9]+$/`
   (no cap). `color` is editable per-user via `setUserColor(uid, "#rrggbb")`;
@@ -92,21 +110,25 @@ for canvas nodes passed back via `done(null, canvas)`.
   silently drops `Set` → always store arrays; convert at the boundary
   (`getValid` returns Sets, `put` accepts either).
 - `src/throttle.js` — concurrency-limited promise queue (default 3).
-- `src/leaflet-engine.js` — canvas `L.GridLayer` renderer. Per squadrat cell:
-  0 owners = skip, 1 = solid fill at `config.alpha`, 2+ = diagonal stripes
-  (45° rotation + horizontal bands, owners already uid-sorted). Zoom gating:
-  draw z14 when `2^(14-z) ≤ 64` (z≥8), z17 when z≥11.
-- `src/planners/brouter.js` — adapter: `findMap()` reads `BR.debug.map` via
-  `wrappedJSObject`; `isPathSupported()` checks pathname/hash.
-- `src/main.js` — orchestrator: wait-for-map poll (1s, 30s timeout) →
-  cache-first load via throttle queue → render. `browser.storage.onChanged`
-  triggers `refresh()` with `refreshInFlight`/`refreshQueued` coalescing.
+- `src/page-renderer.js` — **page-world script** (web_accessible_resource, NOT a
+  content script). Injected by `main.js` via `<script>` tag. Contains the
+  canvas `L.GridLayer` renderer + BRouter map-finding logic + `postMessage`
+  bridge. Per squadrat cell: 0 owners = skip, 1 = solid fill at
+  `config.alpha`, 2+ = diagonal stripes (45° rotation + horizontal bands,
+  owners already uid-sorted). Zoom gating: draw z14 when `2^(14-z) ≤ 64`
+  (z≥8), z17 when z≥11. Polls for map (1s, 30s timeout) with a render token
+  to cancel superseded renders.
+- `src/main.js` — orchestrator (isolated world): injects page-renderer →
+  cache-first load via throttle queue → sends `RATPACK_RENDER` via postMessage.
+  `browser.storage.onChanged` triggers `refresh()` with
+  `refreshInFlight`/`refreshQueued` coalescing.
 
 ## Content-script match scope
 
 Manifest matches `*://*.brouter.de/*` only (MVP target). `bikerouter.de` and
-`brouter.m11n.de` are NOT matched even though `isPathSupported()` checks them —
-extend the manifest match pattern before expecting coverage there. MapLibre
+`brouter.m11n.de` are NOT matched even though `page-renderer.js`'s
+`isPathSupported()` checks them — extend the manifest match pattern (and the
+`web_accessible_resources` matches) before expecting coverage there. MapLibre
 planners (Komoot, Strava, gpx-studio, etc.) are deferred post-MVP.
 
 ## Squadrats data model

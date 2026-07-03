@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build packages
+        run: npm run build
+
+      - name: Rename packages with tag version
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          cd dist
+          for f in ratpack-*.zip; do
+            if [[ "$f" == *chrome* ]]; then
+              mv "$f" "ratpack-${VERSION}-chrome.zip"
+            else
+              mv "$f" "ratpack-${VERSION}-firefox.zip"
+            fi
+          done
+          ls -la
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log --pretty=format:"- %s (%h)" "$PREV_TAG"..HEAD)
+          else
+            NOTES=$(git log --pretty=format:"- %s (%h)")
+          fi
+          {
+            echo "NOTES<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body: |
+            ## Changes
+            ${{ steps.notes.outputs.NOTES }}
+
+            ## Installation
+            ### Firefox
+            Download `ratpack-${{ github.ref_name }}-firefox.zip`, then:
+            1. Open `about:debugging` → This Firefox → Load Temporary Add-on
+            2. Select the downloaded zip
+
+            ### Chrome
+            Download `ratpack-${{ github.ref_name }}-chrome.zip`, then:
+            1. Open `chrome://extensions/`
+            2. Enable Developer mode
+            3. Drag the zip into the window
+          files: |
+            dist/ratpack-${{ github.ref_name }}-firefox.zip
+            dist/ratpack-${{ github.ref_name }}-chrome.zip
+          draft: false
+          prerelease: false

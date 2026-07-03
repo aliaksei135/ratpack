@@ -5,7 +5,11 @@
   "private": true,
   "scripts": {
     "dev": "web-ext run --source-dir . --target firefox-desktop",
-    "lint": "web-ext lint"
+    "lint": "web-ext lint",
+    "clean": "rm -f dist/*.xpi dist/*.zip",
+    "build:firefox": "mkdir -p dist && web-ext build --source-dir . --artifacts-dir dist --overwrite-dest --ignore-files 'package-lock.json' 'scripts/**' 'notes/**' 'AGENTS.md' 'docs/**'",
+    "build:chrome": "mkdir -p dist && node scripts/build-chrome.js",
+    "build": "npm run clean && npm run build:firefox && npm run build:chrome"
   },
   "devDependencies": {
     "web-ext": "^10.4.0"

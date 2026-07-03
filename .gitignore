@@ -1,4 +1,5 @@
 node_modules/
 *.xpi
+*.zip
 *.log
 .DS_Store

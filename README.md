@@ -43,16 +43,16 @@ The UID is an alphanumeric string that identifies your Squadrats account.
 To find it:
 
 1. Go to [squadrats.com](https://squadrats.com) and log in
-2. Open your browser's DevTools (F12) → **Network** tab
-3. Navigate to your profile or trophy page
-4. Look for a request to
-   `https://mainframe-api.squadrats.com/squadrants/<USER_UID>`
-5. The UID is the alphanumeric string at the end of that URL
-
-Alternatively, visit your trophy page and find the UID in the URL:
-```
-https://squadrats.org/trophies/<USER_UID>/<string>.geojson
-```
+2. Do one of the following:
+   - **Standings**: open the standings page, find yourself (or your friend),
+     and click on the name
+   - **Profile**: go to your profile, then click **"my achievements"**
+3. The URL will look like:
+   ```
+   https://squadrats.com/u/2qgThcUDn4OMjTDaGsvF9nSLbWV2
+   ```
+4. The UID is the alphanumeric string after `/u/` — in this example:
+   `2qgThcUDn4OMjTDaGsvF9nSLbWV2`
 
 ## Adding users
 

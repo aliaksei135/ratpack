@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "ratpack",
+  "version": "0.1.0",
+  "description": "Overlay multiple Squadrats users' progress on the same route-planner map.",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "js": ["src/config.js", "src/storage.js", "src/colors.js", "src/fetcher.js", "src/cache.js", "src/throttle.js", "src/leaflet-engine.js", "src/planners/brouter.js", "src/main.js"],
+      "matches": ["*://*.brouter.de/*"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "ratpack"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ratpack@local",
+      "strict_min_version": "109.0"
+    }
+  }
+}

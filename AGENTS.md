@@ -112,12 +112,20 @@ Data crosses the world boundary via `window.postMessage`:
 - `src/throttle.js` — concurrency-limited promise queue (default 3).
 - `src/page-renderer.js` — **page-world script** (web_accessible_resource, NOT a
   content script). Injected by `main.js` via `<script>` tag. Contains the
-  canvas `L.GridLayer` renderer + BRouter map-finding logic + `postMessage`
-  bridge. Per squadrat cell: 0 owners = skip, 1 = solid fill at
-  `config.alpha`, 2+ = diagonal stripes (45° rotation + horizontal bands,
-  owners already uid-sorted). Zoom gating: draw z14 when `2^(14-z) ≤ 64`
-  (z≥8), z17 when z≥11. Polls for map (1s, 30s timeout) with a render token
-  to cancel superseded renders.
+  renderer + map-finding logic + `postMessage` bridge. Supports two map engines:
+  - **Leaflet** (BRouter): canvas `L.GridLayer` with per-tile `createTile`.
+  - **MapLibre/Mapbox GL** (Strava): single canvas overlay synced to
+    `map.on("move")` / `"resize"`. Projects each squadrat's lat/lng bounds to
+    pixel coordinates via `map.project()`, then draws 0/1/2+ owners. Steps
+    tiles in increments when the visible range exceeds 500 cells per axis to
+    avoid drawing tens of thousands of cells at once.
+  Per squadrat cell: 0 owners = skip, 1 = solid fill at `config.alpha`, 2+ =
+  diagonal stripes (45° rotation + horizontal bands, owners already
+  uid-sorted). Zoom gating: draw z14 when `2^(14-z) ≤ 64` (z≥8), z17 when z≥11.
+  Map detection: `findMap()` tries `BR.debug.map` (Leaflet/BRouter) first,
+  then `.mapboxgl-map`/`.maplibregl-map` containers + `._map` property
+  (MapLibre/Strava). Polls for map (1s, 30s timeout) with a render token to
+  cancel superseded renders.
 - `src/main.js` — orchestrator (isolated world): injects page-renderer →
   cache-first load via throttle queue → sends `RATPACK_RENDER` via postMessage.
   `browser.storage.onChanged` triggers `refresh()` with
@@ -125,11 +133,13 @@ Data crosses the world boundary via `window.postMessage`:
 
 ## Content-script match scope
 
-Manifest matches `*://*.brouter.de/*` only (MVP target). `bikerouter.de` and
-`brouter.m11n.de` are NOT matched even though `page-renderer.js`'s
+Manifest matches `*://*.brouter.de/*` (BRouter) and `https://*.strava.com/*`
+(Strava). `bikerouter.de` and `brouter.m11n.de` are NOT matched even though
 `isPathSupported()` checks them — extend the manifest match pattern (and the
-`web_accessible_resources` matches) before expecting coverage there. MapLibre
-planners (Komoot, Strava, gpx-studio, etc.) are deferred post-MVP.
+`web_accessible_resources` matches) before expecting coverage there. Other
+MapLibre planners (Komoot, gpx-studio, etc.) are deferred post-MVP. Strava's
+map may use Mapbox GL, MapLibre GL, or a WASM renderer; the WASM path is not
+yet supported (only `.mapboxgl-*`/`.maplibregl-*` DOM detection).
 
 ## Squadrats data model
 

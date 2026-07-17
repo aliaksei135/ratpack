@@ -26,6 +26,16 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check tag matches manifest version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
+          if [ "${TAG#v}" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag $TAG does not match manifest.json version $MANIFEST_VERSION"
+            exit 1
+          fi
+
       - name: Build packages
         run: npm run build
 
@@ -42,6 +52,25 @@ jobs:
             fi
           done
           ls -la
+
+      - name: Sign Firefox extension (AMO, unlisted)
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          npx web-ext sign \
+            --source-dir . \
+            --artifacts-dir dist \
+            --channel unlisted \
+            --ignore-files 'package-lock.json' 'scripts/**' 'notes/**' 'AGENTS.md' 'docs/**' 'dist/**'
+
+      - name: Rename signed xpi
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          cd dist
+          xpi=$(ls *.xpi | head -n1)
+          mv "$xpi" "ratpack-${VERSION}-firefox.xpi"
 
       - name: Generate release notes
         id: notes
@@ -68,9 +97,9 @@ jobs:
 
             ## Installation
             ### Firefox
-            Download `ratpack-${{ github.ref_name }}-firefox.zip`, then:
-            1. Open `about:debugging` → This Firefox → Load Temporary Add-on
-            2. Select the downloaded zip
+            Download `ratpack-${{ github.ref_name }}-firefox.xpi` (signed) and open it in Firefox — installs permanently, no `about:debugging` needed.
+
+            The unsigned `ratpack-${{ github.ref_name }}-firefox.zip` remains for temporary sideloading via `about:debugging`.
 
             ### Chrome
             Download `ratpack-${{ github.ref_name }}-chrome.zip`, then:
@@ -78,6 +107,7 @@ jobs:
             2. Enable Developer mode
             3. Drag the zip into the window
           files: |
+            dist/ratpack-${{ github.ref_name }}-firefox.xpi
             dist/ratpack-${{ github.ref_name }}-firefox.zip
             dist/ratpack-${{ github.ref_name }}-chrome.zip
           draft: false

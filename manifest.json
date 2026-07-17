@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ratpack",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Overlay multiple Squadrats users' progress on the same route-planner map.",
   "permissions": ["storage"],
   "content_scripts": [
@@ -24,7 +24,8 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "ratpack@local",
-      "strict_min_version": "109.0"
+      "strict_min_version": "109.0",
+      "update_url": "https://raw.githubusercontent.com/aliaksei135/ratpack/main/updates.json"
     }
   }
 }

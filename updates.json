@@ -1,0 +1,16 @@
+{
+  "addons": {
+    "ratpack@local": {
+      "updates": [
+        {
+          "version": "0.1.0",
+          "update_link": "https://github.com/aliaksei135/ratpack/releases/download/v0.1.0/ratpack-v0.1.0-firefox.xpi"
+        },
+        {
+          "version": "0.1.1",
+          "update_link": "https://github.com/aliaksei135/ratpack/releases/download/v0.1.1/ratpack-v0.1.1-firefox.xpi"
+        }
+      ]
+    }
+  }
+}

@@ -14,21 +14,25 @@ Grab the latest release for your browser:
 
 **[Latest release →](https://github.com/aliaksei135/ratpack/releases/latest)**
 
-- **Firefox**: download `ratpack-*-firefox.zip`
+- **Firefox**: download `ratpack-*-firefox.xpi` (signed)
 - **Chrome**: download `ratpack-*-chrome.zip`
 
 ### Install
 
-At the moment, I haven't jumped through the hoops to get this up on the offical extension stores. This means there are a few more steps to get this working:
+Not on the official extension stores, so install is manual:
 
 **Firefox:**
-1. Open `about:debugging` → This Firefox → Load Temporary Add-on
-2. Select the downloaded zip file
+1. Download the `.xpi` and open it in Firefox (drag into a window, or File → Open)
+2. Click **Add** when prompted
+
+Signed through AMO, so it installs permanently — survives restarts, no developer mode needed.
 
 **Chrome:**
 1. Open `chrome://extensions/`
 2. Enable **Developer mode** (top-right toggle)
 3. Drag the zip into the window (or click **Load unpacked** and select the unzipped folder)
+
+Chrome offers no self-signing path — the only signed distribution is via the Chrome Web Store review process, so sideloading in developer mode is the only option for now.
 
 ## Supported planners
 

@@ -62,7 +62,7 @@ jobs:
             --source-dir . \
             --artifacts-dir dist \
             --channel unlisted \
-            --ignore-files 'package-lock.json' 'scripts/**' 'notes/**' 'AGENTS.md' 'docs/**' 'dist/**'
+            --ignore-files 'package-lock.json' 'scripts/**' 'notes/**' 'AGENTS.md' 'docs/**' 'dist/**' 'updates.json'
 
       - name: Rename signed xpi
         env:
